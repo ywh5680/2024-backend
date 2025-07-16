@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import json
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,16 +33,15 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'backend.apps.BackendConfig',  # 使用自定义的BackendConfig
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'admin',
     'comment',
     'enroll',
-    'user',
 ]
 
 MIDDLEWARE = [
@@ -58,7 +59,7 @@ ROOT_URLCONF = 'backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],  # 添加模板目录
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -106,9 +107,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'zh-hans'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 
@@ -119,8 +120,30 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Email configuration from JSON file
+EMAIL_CONFIG_PATH = os.path.join(BASE_DIR, 'email_config.json')
+
+try:
+    with open(EMAIL_CONFIG_PATH, 'r') as f:
+        email_config = json.load(f)
+    
+    # Email settings
+    EMAIL_HOST = email_config.get('EMAIL_HOST')
+    EMAIL_PORT = email_config.get('EMAIL_PORT')
+    EMAIL_HOST_USER = email_config.get('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = email_config.get('EMAIL_HOST_PASSWORD')
+    EMAIL_USE_SSL = email_config.get('EMAIL_USE_SSL')
+    DEFAULT_FROM_EMAIL = email_config.get('DEFAULT_FROM_EMAIL')
+    ADMINS = email_config.get('ADMINS', [])
+    
+except (FileNotFoundError, json.JSONDecodeError) as e:
+    print(f"Warning: Could not load email configuration from {EMAIL_CONFIG_PATH}: {e}")

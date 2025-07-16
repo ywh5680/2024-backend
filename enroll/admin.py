@@ -1,12 +1,20 @@
 
 from django.contrib import admin
+from django.utils.html import format_html
 from . import models, export
 
 @admin.register(models.VerifyCodeModel)
 class VerifyCodeAdmin(admin.ModelAdmin):
-    list_display = "email", "send_time"
-    # send_time is marked as `auto_now=True`, so not editable
-    #list_editable = "send_time",
+    list_display = "email", "send_time", "is_alive_display"
+    readonly_fields = ("send_time",)
+    search_fields = ("email",)
+    
+    def is_alive_display(self, obj):
+        is_alive = obj.is_alive()
+        if is_alive:
+            return format_html('<span style="color: green;">有效</span>')
+        return format_html('<span style="color: red;">已过期</span>')
+    is_alive_display.short_description = "验证码状态"
 
 
 # NOTE: the order must match that of .EnrollModel.departments
@@ -23,11 +31,27 @@ def uname2departmentIdx(name):
 
 @admin.register(models.EnrollModel)
 class EnrollAdmin(admin.ModelAdmin):
-    list_display = "name", "email", "major", "qq", "status", "comment", "department"
-    list_editable = "status", "comment"
-    list_filter = "department",
-    search_fields = 'name',
-    search_help_text = 'Search for name'
+    list_display = ("name", "email", "major", "qq", "status", "comment", "department_display")
+    list_editable = ("status", "comment")
+    list_filter = ("department", "status")
+    search_fields = ("name", "email", "uid", "phone", "qq")
+    search_help_text = '搜索姓名、邮箱、学号、手机号或QQ'
+    list_per_page = 20
+    
+    fieldsets = (
+        ('基本信息', {
+            'fields': ('name', 'uid', 'major', 'phone', 'email', 'qq')
+        }),
+        ('申请信息', {
+            'fields': ('department', 'content')
+        }),
+        ('状态', {
+            'fields': ('status', 'comment')
+        }),
+    )
+    
+    actions = ['mark_as_accepted', 'mark_as_rejected', 'mark_as_interview1_passed', 'mark_as_interview2_passed']
+    
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         for i in 'qq', 'content':
@@ -44,6 +68,52 @@ class EnrollAdmin(admin.ModelAdmin):
         return super().get_queryset(request).filter(department=
                                                     uname2departmentIdx(user.username)
         )
+    
+    def department_display(self, obj):
+        departments = models.EnrollModel.departments
+        return departments[obj.department]
+    department_display.short_description = "意向部门"
+    
+    def status_color(self, obj):
+        status_str = models.EnrollModel.get_status_str(obj.status)
+        colors = {
+            "未录取": "red",
+            "二面失败": "orange",
+            "国庆题未完成": "orange",
+            "一面失败": "orange",
+            "已报名": "blue",
+            "一面已到": "blue",
+            "国庆题已完成": "blue",
+            "二面已参与": "blue",
+            "已录取": "green",
+        }
+        return format_html('<span style="color: {};">{}</span>', 
+                          colors.get(status_str, "black"), 
+                          status_str)
+    status_color.short_description = "状态显示"
+    
+    def mark_as_accepted(self, request, queryset):
+        queryset.update(status=8)  # 已录取
+    mark_as_accepted.short_description = "标记为已录取"
+    
+    def mark_as_rejected(self, request, queryset):
+        queryset.update(status=-4)  # 未录取
+    mark_as_rejected.short_description = "标记为未录取"
+    
+    def mark_as_interview1_passed(self, request, queryset):
+        queryset.update(status=5)  # 一面已到
+    mark_as_interview1_passed.short_description = "标记为一面已到"
+    
+    def mark_as_interview2_passed(self, request, queryset):
+        queryset.update(status=7)  # 二面已参与
+    mark_as_interview2_passed.short_description = "标记为二面已参与"
+    
+    class Media:
+        css = {
+            'all': ('admin/css/custom.css',)
+        }
 
 
+# 将导出CSV的操作标题改为中文
+export.export_csv.short_description = "导出为CSV"
 admin.site.add_action(export.export_csv)

@@ -15,8 +15,22 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from comment.views import CommentView
+from enroll.views import EnrollViewSet, send, get_status, query_ddl
+
+# 导入自定义管理站点配置
+import backend.admin
+
+router = DefaultRouter()
+router.register('enroll', EnrollViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include(router.urls)),
+    path('api/comment/', CommentView.as_view()),
+    path('api/send_code/', send),
+    path('api/get_status/', get_status),
+    path('api/query_ddl/', query_ddl),
 ]

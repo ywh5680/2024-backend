@@ -2,6 +2,8 @@ from django.db import models
 
 
 class comment(models.Model):
+    class Meta:
+        verbose_name = verbose_name_plural = '评论'
     content = models.TextField(verbose_name='评论内容')
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, verbose_name='父评论id')
     datetime = models.DateTimeField(auto_now_add=True, verbose_name='评论时间')

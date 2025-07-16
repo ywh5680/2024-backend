@@ -1,0 +1,51 @@
+/* 自定义管理界面Logo样式 */
+
+/* 允许HTML内容在标题中正确显示 */
+#branding h1, #site-name {
+    display: flex;
+    align-items: center;
+}
+
+/* 确保图片正确显示 */
+#branding h1 img, #site-name img {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 10px;
+}
+
+/* 美化管理站点整体样式 */
+:root {
+    --primary: #2c3e50;
+    --secondary: #34495e;
+    --accent: #3498db;
+    --primary-fg: #fff;
+    --body-fg: #333;
+    --body-bg: #fff;
+    --header-color: #fff;
+}
+
+#header {
+    background: var(--primary);
+    color: var(--header-color);
+    height: 50px;
+    padding: 10px 40px;
+}
+
+/* 美化导航和链接 */
+#header a:link, #header a:visited {
+    color: #fff;
+}
+
+#header a:hover {
+    text-decoration: underline;
+}
+
+/* 美化用户工具区域 */
+#user-tools {
+    font-size: 12px;
+    padding: 0;
+    margin: 0;
+    position: absolute;
+    top: 10px;
+    right: 40px;
+} 

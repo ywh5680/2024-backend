@@ -29,10 +29,10 @@ def export_csv(self: ModelAdmin, request, queryset) -> HttpResponse:
 
     return response
 
-export_csv.short_description = "Export Selected as csv"
+export_csv.short_description = "导出所选为CSV"
 
 class ExportCsvMixin:
-    '''to be inherited by AdminModel'''
+    '''用于被AdminModel继承'''
     model: Model
     export_csv: Callable
 ExportCsvMixin.export_csv = export_csv

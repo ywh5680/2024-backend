@@ -11,23 +11,10 @@ _CONFS = (
 
 email_conf = dict()
 
+# Get email configuration from settings
 for attr in _CONFS:
     email_conf[attr] = getattr(settings, attr, None)
 del attr
-
-try:
-    from . import _email_conf
-    def _load(name):
-        res = getattr(_email_conf, name, None)
-        if res is not None and name in email_conf:
-            warnings.warn(f"settings.{name} is overwritten by {_email_conf}",
-                          ImportWarning)
-        email_conf[name] = res
-    for i in _CONFS:
-        _load(i)
-
-except ImportError:
-    pass
 
 _ADMINS = getattr(settings, "ADMINS", [])
 
@@ -38,19 +25,18 @@ sender = Sender(
     admins=_ADMINS)
 
 
-if not all(i in email_conf for i in ("EMAIL_HOST_USER", "EMAIL_HOST_PASSWORD")):
+if not all(i in email_conf and email_conf[i] is not None for i in ("EMAIL_HOST_USER", "EMAIL_HOST_PASSWORD")):
     # overwrite send_code
     Solution = """
         Solution:
-        1) set such an environment variable;
-        2) modify settings.EMAIL_HOST_PASSWORD to something other than None
+        1) Check your email_config.json file is correctly configured
+        2) Make sure the file is in the project root directory
 """
-    warnings.warn("NO email conf found, `send_code` will raise Error if called" + Solution,
+    warnings.warn("Email configuration is missing or incomplete, `send_code` will raise Error if called" + Solution,
                   RuntimeWarning)
     def send_code(*_a, **_kw):
         raise OSError(
-            """EMAIL_HOST_PASSWORD environment variable is not set,
-            which is required to send email.
+            """Email configuration is missing or incomplete.
 
             """ + Solution
         )

@@ -122,7 +122,7 @@ class EnrollModel(models.Model):
         return self.name
 
     STATUS_QUERY_CAND = (
-        'email', 'phone', 'qq')
+        'email', 'phone', 'qq', 'uid')
     STATUS_QUERY_FUZZY_CAND = ('name',)  # name is not unique
 
     @classmethod
