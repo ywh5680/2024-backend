@@ -68,11 +68,24 @@ class EnrollAdmin(admin.ModelAdmin):
         return super().get_queryset(request).filter(department=
                                                     uname2departmentIdx(user.username)
         )
-    
+
+    @admin.display(description="意向部门")
     def department_display(self, obj):
+        """
+        一个健壮的、用于显示部门中文名称的方法。
+        """
+        # 从模型中获取 departments 元组，这部分是正确的
         departments = models.EnrollModel.departments
-        return departments[obj.department]
-    department_display.short_description = "意向部门"
+
+        # 检查 obj.department 是否是一个有效的整数，并且在索引范围内
+        if isinstance(obj.department, int) and 0 <= obj.department < len(departments):
+            # 如果是有效的，就安全地返回值
+            return departments[obj.department]
+        else:
+            # 如果不是有效的（比如是 None, 负数, 或者超出范围的大数）
+            # 就返回一个带警告标志的、友好的提示信息
+            # format_html 用于防止XSS攻击，并正确渲染HTML
+            return format_html('<span style="color: orange;">⚠️ 未知或无效</span>')
     
     def status_color(self, obj):
         status_str = models.EnrollModel.get_status_str(obj.status)
