@@ -17,8 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from comment.views import CommentView
+from comment.views import CommentView, CommentReplyView
 from enroll.views import EnrollViewSet, send, get_status, query_ddl
+from django.conf import settings
+from django.conf.urls.static import static
 
 # 导入自定义管理站点配置
 import backend.admin
@@ -33,4 +35,9 @@ urlpatterns = [
     path('api/send_code/', send),
     path('api/get_status/', get_status),
     path('api/query_ddl/', query_ddl),
+    path('api/comment/<int:parent_id>/', CommentReplyView.as_view()),
 ]
+
+# 添加静态文件的URL路由
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

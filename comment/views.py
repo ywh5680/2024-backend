@@ -23,8 +23,8 @@ class CommentView(APIView):
         comments = comment.objects.filter(parent=None).order_by('-id')[start:start+limit]
         serializer = commentSerializer(comments, many=True).data
         for i in serializer:
-            sub_comment = comment.objects.filter(parent=i['id'])
-            i['children'] = commentSerializer(sub_comment, many=True).data
+            sub_comment_ids = list(comment.objects.filter(parent=i['id']).values_list('id', flat=True))
+            i['children'] = sub_comment_ids
         return Response(serializer)
 
     def post(self, request: Request) -> Response:
@@ -48,3 +48,13 @@ class CommentView(APIView):
             return create_return(parent)
         else:
             return Response(dict(detail='parent不存在'), status=404)
+
+
+class CommentReplyView(APIView):
+    def get(self, request, parent_id):
+        replies = comment.objects.filter(parent_id=parent_id).order_by('datetime')
+        data = commentSerializer(replies, many=True).data
+        for i in data:
+            sub_comment_ids = list(comment.objects.filter(parent=i['id']).values_list('id', flat=True))
+            i['children'] = sub_comment_ids
+        return Response(data)

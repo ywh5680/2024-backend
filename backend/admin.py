@@ -2,11 +2,6 @@ from django.contrib import admin
 from django.contrib.auth.models import Group, User
 from django.contrib.auth.admin import GroupAdmin, UserAdmin
 
-# # 修改管理站点标题和页眉
-# admin.site.site_header = '爱特工作室管理系统'
-# admin.site.site_title = '爱特工作室'
-# admin.site.index_title = '爱特工作室管理面板'
-
 # 重新注册内置模型以使用中文显示
 admin.site.unregister(Group)
 admin.site.unregister(User)

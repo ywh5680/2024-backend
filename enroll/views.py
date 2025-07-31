@@ -94,8 +94,19 @@ class EnrollViewSet(ModelViewSet):
     queryset = EnrollModel.objects.all()
     serializer_class = EnrollSerializer
     def create(self, request: Request, *args, **kwargs):
-       sender.send_enrollee_info(request.data)
-       return super().create(request, *args, **kwargs)
+        # 检查是否已经报名
+        unique_fields = ['email', 'phone', 'uid', 'qq']
+        for field in unique_fields:
+            if field in request.data:
+                existing = EnrollModel.objects.filter(**{field: request.data[field]}).first()
+                if existing:
+                    return Response(
+                        {"detail": f"已经使用此{field}报名，当前状态：{EnrollModel.get_status_str(existing.status)}"},
+                        status=409  # 使用409 Conflict表示已存在
+                    )
+        
+        sender.send_enrollee_info(request.data)
+        return super().create(request, *args, **kwargs)
 
 @api_view(['POST'])
 @throttle_classes([GetStatusThrottle])

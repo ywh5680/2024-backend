@@ -31,7 +31,7 @@ def uname2departmentIdx(name):
 
 @admin.register(models.EnrollModel)
 class EnrollAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "major", "qq", "status", "comment", "department_display")
+    list_display = ("name", "uid", "phone", "email", "major", "qq", "status", "comment", "department_display")
     list_editable = ("status", "comment")
     list_filter = ("department", "status")
     search_fields = ("name", "email", "uid", "phone", "qq")
@@ -50,7 +50,7 @@ class EnrollAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['mark_as_accepted', 'mark_as_rejected', 'mark_as_interview1_passed', 'mark_as_interview2_passed']
+    actions = ['mark_as_accepted', 'mark_as_rejected', 'mark_as_interview1_passed', 'mark_as_interview2_passed', 'export_csv', 'export_excel']
     
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
@@ -61,8 +61,8 @@ class EnrollAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         # 获取当前登录的用户
         user = request.user
-        # 如果用户是超级用户，则返回所有记录
-        if user.is_superuser:
+        # 如果用户是管理员，则返回所有记录
+        if user.is_staff:
             return super().get_queryset(request)
         # 否则，只返回该用户名等于用户名称的记录
         return super().get_queryset(request).filter(department=
@@ -71,20 +71,11 @@ class EnrollAdmin(admin.ModelAdmin):
 
     @admin.display(description="意向部门")
     def department_display(self, obj):
-        """
-        一个健壮的、用于显示部门中文名称的方法。
-        """
-        # 从模型中获取 departments 元组，这部分是正确的
         departments = models.EnrollModel.departments
 
-        # 检查 obj.department 是否是一个有效的整数，并且在索引范围内
         if isinstance(obj.department, int) and 0 <= obj.department < len(departments):
-            # 如果是有效的，就安全地返回值
             return departments[obj.department]
         else:
-            # 如果不是有效的（比如是 None, 负数, 或者超出范围的大数）
-            # 就返回一个带警告标志的、友好的提示信息
-            # format_html 用于防止XSS攻击，并正确渲染HTML
             return format_html('<span style="color: orange;">⚠️ 未知或无效</span>')
     
     def status_color(self, obj):
@@ -103,7 +94,7 @@ class EnrollAdmin(admin.ModelAdmin):
         return format_html('<span style="color: {};">{}</span>', 
                           colors.get(status_str, "black"), 
                           status_str)
-    status_color.short_description = "状态显示"
+    status_color.short_description = "报名状态"
     
     def mark_as_accepted(self, request, queryset):
         queryset.update(status=8)  # 已录取
@@ -120,13 +111,16 @@ class EnrollAdmin(admin.ModelAdmin):
     def mark_as_interview2_passed(self, request, queryset):
         queryset.update(status=7)  # 二面已参与
     mark_as_interview2_passed.short_description = "标记为二面已参与"
+
+    # 添加导出方法
+    export_csv = export.export_csv
+    export_excel = export.export_excel
     
     class Media:
         css = {
             'all': ('admin/css/custom.css',)
         }
 
-
-# 将导出CSV的操作标题改为中文
+# 将导出的操作标题改为中文
 export.export_csv.short_description = "导出为CSV"
-admin.site.add_action(export.export_csv)
+export.export_excel.short_description = "导出为Excel"

@@ -62,7 +62,7 @@ class EnrollStatus(IntegerChoices):
     def get_index(self, item) -> int:
         return self.index(item) - self.start
     def get_str(self, index: int):
-        return self[index+self.start]
+        return self[index-self.start]
 
 
 class EnrollModel(models.Model):
@@ -108,7 +108,7 @@ class EnrollModel(models.Model):
     uid = models.PositiveBigIntegerField(unique=True, verbose_name="学号")
     major = models.CharField(max_length=20, verbose_name="年级专业")
     phone = models.PositiveBigIntegerField(unique=True, verbose_name="手机号码")
-    # 0..9223372036854775807  (max of int64), bigger than 11 digits
+    # 0..9,223,372,036,854,775,807 (max of int64), bigger than 11 digits
     email = EmailFieldInst
     department = models.SmallIntegerField(choices=departments, verbose_name="意向部门")
     content = models.CharField(null=True, max_length=200, verbose_name="为什么要加入爱特工作室")

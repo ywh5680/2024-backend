@@ -49,10 +49,12 @@ class Sender:
                 auth_password=self.auth_password
             )
     def send_enrollee_info(self, data):
+        # 提取管理员邮箱地址
+        admin_emails = [email for _, email in self.admins]
         return self.send_mail(
             "Enrollee for itstudio: " + data["name"],
             str(data),
-            self.admins,
+            admin_emails,
             mapping_to_html_table(data)
         )
     def send_code(self, code, emails) -> 'None|str':
