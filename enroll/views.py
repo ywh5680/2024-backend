@@ -96,6 +96,12 @@ class EnrollViewSet(ModelViewSet):
     def create(self, request: Request, *args, **kwargs):
         # 检查是否已经报名
         unique_fields = ['email', 'phone', 'uid', 'qq']
+
+        department = request.data.get('department', None)
+        if department is None or department < 0 or department > 5:
+            return Response({"detail": f"非法的部门id"},
+                                status=422)
+
         for field in unique_fields:
             if field in request.data:
                 existing = EnrollModel.objects.filter(**{field: request.data[field]}).first()
