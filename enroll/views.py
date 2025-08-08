@@ -98,7 +98,7 @@ class EnrollViewSet(ModelViewSet):
         unique_fields = ['email', 'phone', 'uid', 'qq']
 
         department = request.data.get('department', None)
-        if department is None or department < 0 or department > 5:
+        if department < 0 or department > 5:
             return Response({"detail": f"非法的部门id"},
                                 status=422)
 
