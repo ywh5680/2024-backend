@@ -1,11 +1,12 @@
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.throttling import AnonRateThrottle
-from rest_framework.decorators import throttle_classes
+
 
 from .models import Comment
 from .serializers import CommentSerializer
@@ -22,18 +23,12 @@ class CommentView(APIView):
     
     def get(self, request: Request) -> Response:
         """获取评论列表"""
-        def parse_int(sth, default_if_omit):
-            p = request.query_params.get(sth)
-            if p is None: 
-                return default_if_omit
-            try: 
-                return int(p)
-            except ValueError:
-                raise ParseError(f"{sth} 不是有效的整数")
+        try:
+            limit = int(request.query_params.get("limit", 20))
+            start = int(request.query_params.get("start", 0))
+        except ValueError:
+            raise ParseError("limit和start参数必须是整数")
                 
-        limit = parse_int("limit", 20)
-        start = parse_int("start", 0)
-        
         comments = Comment.objects.filter(parent=None).order_by('-datetime')[start:start+limit]
         serializer = CommentSerializer(comments, many=True)
         
@@ -59,12 +54,9 @@ class CommentReplyView(APIView):
     
     def get(self, request: Request, parent_id: int) -> Response:
         """获取特定评论的回复"""
-        # 检查父评论是否存在
-        parent = Comment.objects.filter(id=parent_id).first()
-        if not parent:
-            raise ValidationError(f"ID为{parent_id}的评论不存在")
-            
-        replies = Comment.objects.filter(parent_id=parent_id).order_by('datetime')
+        # 使用get_object_or_404简化代码
+        parent = get_object_or_404(Comment, id=parent_id)
+        replies = Comment.objects.filter(parent=parent).order_by('datetime')
         serializer = CommentSerializer(replies, many=True)
         
         return Response(serializer.data)
