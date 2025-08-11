@@ -93,6 +93,7 @@ def send(request: Request) -> Response:
 class EnrollViewSet(ModelViewSet):
     queryset = EnrollModel.objects.all()
     serializer_class = EnrollSerializer
+    http_method_names = ['get', 'post', 'head', 'options']
     def create(self, request: Request, *args, **kwargs):
         # 检查是否已经报名
         unique_fields = ['email', 'phone', 'uid', 'qq']
