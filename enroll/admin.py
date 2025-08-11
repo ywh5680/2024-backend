@@ -3,20 +3,6 @@ from django.contrib import admin
 from django.utils.html import format_html
 from . import models, export
 
-@admin.register(models.VerifyCodeModel)
-class VerifyCodeAdmin(admin.ModelAdmin):
-    list_display = "email", "send_time", "is_alive_display"
-    readonly_fields = ("send_time",)
-    search_fields = ("email",)
-    
-    def is_alive_display(self, obj):
-        is_alive = obj.is_alive()
-        if is_alive:
-            return format_html('<span style="color: green;">有效</span>')
-        return format_html('<span style="color: red;">已过期</span>')
-    is_alive_display.short_description = "验证码状态"
-
-
 # NOTE: the order must match that of .EnrollModel.departments
 username2department = (
     'py',

@@ -80,4 +80,4 @@ class Sender:
         if num_sent != 0:
             return None
         assert type(err_msg) is str  # just comfort type cheking
-        return err_msg
+        raise ValueError(err_msg)
