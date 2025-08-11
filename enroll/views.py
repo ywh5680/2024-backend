@@ -1,13 +1,12 @@
 
 import random
 
-from django.core.exceptions import ValidationError
 from django.conf import settings
 if settings.DEBUG:
     def log(*a): print(*a) #type: ignore
 else:
     def log(*_): pass
-from .models import VerifyCodeModel, EnrollModel
+from .models import EnrollModel
 from .email_livecycle import ALIVE_MINUTES
 from .serializers import EnrollSerializer
 from rest_framework.request import Request
@@ -15,9 +14,12 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
+from django.db.models import Q
 
 from .verify_code import sender
 from .ddl import stop_after_ddl, over_ddl
+from django.core.cache import cache
 
 @api_view(['GET'])
 def query_ddl(_: Request) -> Response:
@@ -48,86 +50,47 @@ class SendCodeThrottle(AnonRateThrottle):
 class GetStatusThrottle(AnonRateThrottle):
     rate = "1/sec"
 
-# XXX: if using stop_after_ddl as the top decorator, it just response
-# `Forbidden (CSRF cookie not set.)` all time, donno why :(
 @api_view(['POST'])
 @throttle_classes([SendCodeThrottle])
 @stop_after_ddl
 def send(request: Request) -> Response:
-    email = request.data.get('email', None) #type: ignore
+    email = request.data.get('email', None)
     if email is None:
-        return err_response("email is required but missing", status=422)
-    log(email)
-    obj = VerifyCodeModel.objects.filter(email=email).first()
-    code = gen_code()
-    def create_new():
-        nonlocal obj
-        try:
-            obj = VerifyCodeModel.objects.create(email=email, code=format_code(code))
-        except ValidationError:
-            return err_response("邮箱格式错误", status=422)
+        raise ValidationError("email is required but missing")
+    
+    key = f"verify_code_{email}"
 
-    if obj is not None:
-        if obj.try_remove_if_unalive():
-            res = create_new()
-            if res is not None:
-                return res
-        obj.code = code
-    else:
-        res = create_new()
-        if res is not None:
-            return res
-    assert obj is not None
-    obj.save()
-
-    log(code)
-
-    err_msg = sender.send_code(code, [email])
-    if err_msg is None:
+    if cache.get(key) is not None:
+        # 发过了验证码，还没有过期
         return Response(data=dict(alive_minutes=ALIVE_MINUTES),
                         status=200)
     else:
-        return err_response(err_msg , status=500)
+        code = gen_code()
+        cache.set(key, code, timeout=ALIVE_MINUTES * 60)
+        # 发验证码
+        sender.send_code(code, [email])
+        return Response(data=dict(alive_minutes=ALIVE_MINUTES),
+                        status=200)
 
 @stop_after_ddl
 class EnrollViewSet(ModelViewSet):
     queryset = EnrollModel.objects.all()
     serializer_class = EnrollSerializer
-    def create(self, request: Request, *args, **kwargs):
-        # 检查是否已经报名
-        unique_fields = ['email', 'phone', 'uid', 'qq']
-
-        department = request.data.get('department', None)
-        if department < 0 or department > 5:
-            return Response({"detail": f"非法的部门id"},
-                                status=422)
-
-        for field in unique_fields:
-            if field in request.data:
-                existing = EnrollModel.objects.filter(**{field: request.data[field]}).first()
-                if existing:
-                    return Response(
-                        {"detail": f"已经使用此{field}报名，当前状态：{EnrollModel.get_status_str(existing.status)}"},
-                        status=409  # 使用409 Conflict表示已存在
-                    )
-        
-        sender.send_enrollee_info(request.data)
-        return super().create(request, *args, **kwargs)
 
 @api_view(['POST'])
 @throttle_classes([GetStatusThrottle])
 def get_status(request: Request) -> Response:
-    try:
-        # we know (isinstance(request.data, dict))
-        tup = EnrollModel.get_status(request.data) #type:ignore
-    except KeyError as e:
-        return err_response(str(e), status=400)
-    except EnrollModel.DoesNotExist as e:
-        return err_response(str(e), status=404)
-    except EnrollModel.MultipleObjectsReturned as e:
-        return err_response(str(e), status=406) # or maybe 300
-    else:
-        (idx, progress) = tup
-        return Response(
-            dict(idx=idx, progress=progress),
-        )
+    keyword = request.data.get('keyword', None)
+
+    filters = Q()
+    if keyword is not None:
+        filters |= Q(email=keyword) | Q(phone=keyword) | Q(qq=keyword) | Q(uid=keyword)
+
+    enrollments = EnrollModel.objects.filter(filters).first()
+
+    if not enrollments:
+        raise ValidationError("没有找到符合条件的报名信息")
+
+    return Response(
+        dict(idx=enrollments.status, progress=enrollments.get_status_display()),
+    )

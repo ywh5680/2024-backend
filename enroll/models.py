@@ -9,28 +9,6 @@ EmailFieldInst = models.EmailField(
 
 CODE_HELP_TEXT = "验证码"
 
-class VerifyCodeModel(models.Model):
-    class Meta:
-        verbose_name = verbose_name_plural = CODE_HELP_TEXT
-    email = EmailFieldInst
-    # this field allows at least 0-2147483647
-    code = models.PositiveIntegerField()
-    send_time = models.DateTimeField(auto_now=True)
-    # XXX: auto_now=True will add a datetime with timezone.utc when settings.USE_TZ
-    #   a.k.a. an aware datetime
-    def is_alive(self) -> bool:
-        send_time = self.send_time
-        ddl = datetime.now(timezone.utc) - ALIVE_DURATION
-        return send_time >= ddl
-    def try_remove_if_unalive(self) -> bool:
-        ## returns if unalive
-        res = not self.is_alive()
-        if res:
-            self.delete()
-        return res
-    def __str__(self) -> str:
-        return self.email
-
 class IntegerChoices:
     '''Sequnence:
       - `__iter__` yields tuple[int, str], and starts from `start`'''
@@ -124,24 +102,3 @@ class EnrollModel(models.Model):
     STATUS_QUERY_CAND = (
         'email', 'phone', 'qq', 'uid')
     STATUS_QUERY_FUZZY_CAND = ('name',)  # name is not unique
-
-    @classmethod
-    def get_status(cls, d: dict) -> tuple[int, str]:
-        key = val = ''
-        for cand in cls.STATUS_QUERY_CAND:
-            val = d.get(cand, None)
-            if val is not None:
-                key = cand
-                break
-        if key == '':
-            for cand in cls.STATUS_QUERY_FUZZY_CAND:
-                val = d.get(cand, None)
-                if val is not None:
-                    key = cand
-                    break
-            if key == '': raise KeyError("no valid item used as key to look up")
-        
-        item = cls.objects.get(**{key: val})  # raises error iff not only one is found.
-        idx = item.status
-        status = cls.get_status_str(idx)
-        return (idx, status)

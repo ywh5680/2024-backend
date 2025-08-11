@@ -4,8 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.exceptions import ParseError
-from .models import *
-from .serializers import commentSerializer
+from .models import Comment
+from .serializers import CommentSerializer
 
 
 class CommentView(APIView):
@@ -20,10 +20,10 @@ class CommentView(APIView):
             return res
         limit = parse_int("limit", 20)
         start = parse_int("start", 0)
-        comments = comment.objects.filter(parent=None).order_by('-id')[start:start+limit]
-        serializer = commentSerializer(comments, many=True).data
+        comments = Comment.objects.filter(parent=None).order_by('-id')[start:start+limit]
+        serializer = CommentSerializer(comments, many=True).data
         for i in serializer:
-            sub_comment_ids = list(comment.objects.filter(parent=i['id']).values_list('id', flat=True))
+            sub_comment_ids = list(Comment.objects.filter(parent=i['id']).values_list('id', flat=True))
             i['children'] = sub_comment_ids
         return Response(serializer)
 
@@ -36,14 +36,14 @@ class CommentView(APIView):
             return Response(dict(detail="at least one of qq or email shall be given"), status=400)
         def create_return(parent):
             try:
-                comment.objects.create(content=content, parent=parent, qq=qq, email=email)
+                Comment.objects.create(content=content, parent=parent, qq=qq, email=email)
             except IntegrityError as e:
                 return Response(dict(detail=str(e)), status=422)
             else:
                 return Response({}, status=200)
         if parent_id is None:
             return create_return(None)
-        parent = comment.objects.filter(id=parent_id).first()
+        parent = Comment.objects.filter(id=parent_id).first()
         if parent is not None:
             return create_return(parent)
         else:
@@ -52,9 +52,9 @@ class CommentView(APIView):
 
 class CommentReplyView(APIView):
     def get(self, request, parent_id):
-        replies = comment.objects.filter(parent_id=parent_id).order_by('datetime')
-        data = commentSerializer(replies, many=True).data
+        replies = Comment.objects.filter(parent_id=parent_id).order_by('datetime')
+        data = CommentSerializer(replies, many=True).data
         for i in data:
-            sub_comment_ids = list(comment.objects.filter(parent=i['id']).values_list('id', flat=True))
+            sub_comment_ids = list(Comment.objects.filter(parent=i['id']).values_list('id', flat=True))
             i['children'] = sub_comment_ids
         return Response(data)

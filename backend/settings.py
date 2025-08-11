@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'comment',
     'enroll',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [

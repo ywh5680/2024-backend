@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class comment(models.Model):
+class Comment(models.Model):
     class Meta:
         verbose_name = verbose_name_plural = '评论'
     content = models.TextField(verbose_name='评论内容')
