@@ -1,60 +1,70 @@
-
 from django.db import IntegrityError
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, ValidationError
+from rest_framework.throttling import AnonRateThrottle
+from rest_framework.decorators import throttle_classes
+
 from .models import Comment
 from .serializers import CommentSerializer
 
 
+class CommentThrottle(AnonRateThrottle):
+    """评论限流器"""
+    rate = "10/min"
+
+
 class CommentView(APIView):
+    """评论视图"""
+    throttle_classes = [CommentThrottle]
+    
     def get(self, request: Request) -> Response:
+        """获取评论列表"""
         def parse_int(sth, default_if_omit):
-            p = request.query_params.get(sth) # str|None
-            if p is None: res = default_if_omit
-            else:
-                try: res = int(p)
-                except ValueError:
-                    raise ParseError(sth + " is not an integer") # def: code=400
-            return res
+            p = request.query_params.get(sth)
+            if p is None: 
+                return default_if_omit
+            try: 
+                return int(p)
+            except ValueError:
+                raise ParseError(f"{sth} 不是有效的整数")
+                
         limit = parse_int("limit", 20)
         start = parse_int("start", 0)
-        comments = Comment.objects.filter(parent=None).order_by('-id')[start:start+limit]
-        serializer = CommentSerializer(comments, many=True).data
-        for i in serializer:
-            sub_comment_ids = list(Comment.objects.filter(parent=i['id']).values_list('id', flat=True))
-            i['children'] = sub_comment_ids
-        return Response(serializer)
+        
+        comments = Comment.objects.filter(parent=None).order_by('-datetime')[start:start+limit]
+        serializer = CommentSerializer(comments, many=True)
+        
+        return Response(serializer.data)
 
     def post(self, request: Request) -> Response:
-        content = request.data.get("content") #type: ignore
-        parent_id = request.data.get("parent") #type: ignore
-        qq = request.data.get("qq")
-        email = request.data.get("email")
-        if qq is None and email is None:
-            return Response(dict(detail="at least one of qq or email shall be given"), status=400)
-        def create_return(parent):
+        """创建新评论"""
+        serializer = CommentSerializer(data=request.data)
+        
+        if serializer.is_valid():
             try:
-                Comment.objects.create(content=content, parent=parent, qq=qq, email=email)
+                serializer.save()
+                return Response(serializer.data, status=201)
             except IntegrityError as e:
-                return Response(dict(detail=str(e)), status=422)
-            else:
-                return Response({}, status=200)
-        if parent_id is None:
-            return create_return(None)
-        parent = Comment.objects.filter(id=parent_id).first()
-        if parent is not None:
-            return create_return(parent)
-        else:
-            return Response(dict(detail='parent不存在'), status=404)
+                return Response({"detail": str(e)}, status=422)
+        
+        return Response(serializer.errors, status=400)
 
 
 class CommentReplyView(APIView):
-    def get(self, request, parent_id):
+    """评论回复视图"""
+    throttle_classes = [CommentThrottle]
+    
+    def get(self, request: Request, parent_id: int) -> Response:
+        """获取特定评论的回复"""
+        # 检查父评论是否存在
+        parent = Comment.objects.filter(id=parent_id).first()
+        if not parent:
+            raise ValidationError(f"ID为{parent_id}的评论不存在")
+            
         replies = Comment.objects.filter(parent_id=parent_id).order_by('datetime')
-        data = CommentSerializer(replies, many=True).data
-        for i in data:
-            sub_comment_ids = list(Comment.objects.filter(parent=i['id']).values_list('id', flat=True))
-            i['children'] = sub_comment_ids
-        return Response(data)
+        serializer = CommentSerializer(replies, many=True)
+        
+        return Response(serializer.data)
