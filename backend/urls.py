@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from comment.views import CommentView, CommentReplyView
+from comment.views import CommentView
 from enroll.views import EnrollViewSet, send, get_status, query_ddl
 from django.conf import settings
 from django.conf.urls.static import static
@@ -28,10 +28,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/enroll/', EnrollViewSet.as_view({'post': 'create'})),
     path('api/comment/', CommentView.as_view()),
+    path('api/comment/<int:page>/', CommentView.as_view(), name='comment-page'),
     path('api/send_code/', send),
     path('api/get_status/', get_status),
     path('api/query_ddl/', query_ddl),
-    path('api/comment/<int:parent_id>/', CommentReplyView.as_view()),
 ]
 
 # 添加静态文件的URL路由
