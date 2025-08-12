@@ -28,10 +28,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/enroll/', EnrollViewSet.as_view({'post': 'create'})),
     path('api/comment/', CommentView.as_view()),
+    path('api/comment/<int:page>/', CommentView.as_view(), name='comment-page'),
     path('api/send_code/', send),
     path('api/get_status/', get_status),
     path('api/query_ddl/', query_ddl),
-    path('api/comment/<int:parent_id>/', CommentReplyView.as_view()),
+    path('api/comment/reply/<int:parent_id>/', CommentReplyView.as_view()),
 ]
 
 # 添加静态文件的URL路由

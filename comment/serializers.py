@@ -4,20 +4,15 @@ from . import models
 
 class CommentSerializer(serializers.ModelSerializer):
     """评论序列化器"""
-    children = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = models.Comment
-        fields = ['id', 'content', 'parent', 'datetime', 'qq', 'email', 'children']
+        fields = ['id', 'content', 'parent', 'datetime', 'qq', 'email']
         extra_kwargs = {
             'parent': {'write_only': True},
             'datetime': {'read_only': True},
         }
-    
-    def get_children(self, obj):
-        """获取子评论ID列表"""
-        return list(models.Comment.objects.filter(parent=obj.id).values_list('id', flat=True))
-    
+
     def validate_content(self, data):
         """验证评论内容"""
         if not data or len(data.strip()) < 1:
