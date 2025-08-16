@@ -14,6 +14,15 @@ class CommentSerializer(serializers.ModelSerializer):
         }
     )
     
+    content = serializers.CharField(
+        max_length=1000, 
+        allow_blank=False, 
+        error_messages={
+            'blank': '评论内容不能为空',
+            'max_length': '评论内容不能超过1000个字符'
+        }
+    )
+    
     class Meta:
         model = models.Comment
         fields = ['id', 'content', 'datetime', 'qq', 'email', 'orid']
@@ -44,14 +53,6 @@ class CommentSerializer(serializers.ModelSerializer):
                 representation['email'] = "u***@" + domain if domain else "u***"
         
         return representation
-    
-    def validate_content(self, data):
-        """验证评论内容"""
-        if not data or len(data.strip()) < 1:
-            raise serializers.ValidationError("评论内容不能为空")
-        if len(data) > 1000:
-            raise serializers.ValidationError("评论内容不能超过1000个字符")
-        return data
     
     def validate_email(self, data):
         """验证邮箱格式"""
