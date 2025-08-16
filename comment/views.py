@@ -1,11 +1,4 @@
-from django.db import IntegrityError
-from django.shortcuts import get_object_or_404
-from django.core.paginator import Paginator, EmptyPage
-
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.response import Response
-from rest_framework.request import Request
-from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.pagination import PageNumberPagination
 

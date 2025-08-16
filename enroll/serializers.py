@@ -10,7 +10,6 @@ class EnrollSerializer(serializers.ModelSerializer):
     code = serializers.IntegerField(help_text=models.CODE_HELP_TEXT, write_only=True)
     department = serializers.ChoiceField(
         choices=models.EnrollModel.departments,
-        source="get_department_display",
         error_messages={"invalid_choice": "请选择一个有效的部门"},
     )
 
@@ -44,3 +43,8 @@ class EnrollSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("验证码不正确")
         cache.delete(key)
         return super().validate(attrs)
+    
+    def create(self, validated_data):
+        """创建时移除code字段，因为它不是模型字段"""
+        validated_data.pop('code', None)
+        return super().create(validated_data)

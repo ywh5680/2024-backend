@@ -28,7 +28,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/enroll/', EnrollViewSet.as_view({'post': 'create'})),
     path('api/comment/', CommentViewSet.as_view({'get': 'list', 'post': 'create'})),
-    path('api/comment/<int:page>/', CommentViewSet.as_view({'get': 'list'}), name='comment-page'),
     path('api/send_code/', send),
     path('api/get_status/', get_status),
     path('api/query_ddl/', query_ddl),
