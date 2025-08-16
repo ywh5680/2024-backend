@@ -1,5 +1,55 @@
+import re
 from rest_framework import serializers
 from . import models
+
+
+class QQField(serializers.CharField):
+    """QQ号字段，包含验证和脱敏功能"""
+    default_error_messages = {
+        'blank': 'QQ号不能为空',
+        'min_length': 'QQ号最少为5位',
+        'max_length': 'QQ号最多为11位',
+        'invalid': 'QQ号格式不正确'
+    }
+
+    def __init__(self, **kwargs):
+        kwargs.update({
+            'min_length': 5,
+            'max_length': 11
+        })
+        super().__init__(**kwargs)
+        self.validators.append(self.qq_validator)
+
+    def qq_validator(self, value):
+        if not re.match(r'^\d{5,11}$', value):
+            self.fail('invalid', value=value)
+
+    def to_representation(self, value):
+        qq = super().to_representation(value)
+        if qq and len(qq) > 6:
+            qq = qq[:3] + "****" + qq[-2:]
+        elif qq and len(qq) > 2:
+            qq = qq[:1] + "****" + qq[-1:]
+        elif qq:
+            qq = "****"
+        return qq
+
+
+class EmailField(serializers.EmailField):
+    """邮箱字段，包含脱敏功能"""
+    default_error_messages = {
+        'invalid': '邮箱格式不正确'
+    }
+    
+    def mask_email(self, email):
+        if not email:
+            return email
+        email = re.sub(r'([^@]{1})([^@]{1,})([^@]{1})@', r'\1***\3@', email)
+        return email
+    
+    def to_representation(self, value):
+        email = super().to_representation(value)
+        return self.mask_email(email)
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -23,42 +73,15 @@ class CommentSerializer(serializers.ModelSerializer):
         }
     )
     
+    qq = QQField(required=False, allow_null=True)
+    email = EmailField(required=False, allow_null=True)
+    
     class Meta:
         model = models.Comment
         fields = ['id', 'content', 'datetime', 'qq', 'email', 'orid']
         extra_kwargs = {
             'datetime': {'read_only': True},
         }
-    
-    def to_representation(self, instance):
-        """处理数据表示，实现隐私保护"""
-        representation = super().to_representation(instance)
-        
-        # 隐藏部分QQ号
-        if representation.get('qq'):
-            qq = str(representation['qq'])
-            if len(qq) > 6:
-                representation['qq'] = qq[:3] + "****" + qq[-2:]
-            else:
-                representation['qq'] = qq[:1] + "****" + qq[-1:] if len(qq) > 2 else "****"
-        
-        # 隐藏部分邮箱
-        if representation.get('email'):
-            email = representation['email']
-            username, domain = email.split('@') if '@' in email else (email, '')
-            if len(username) > 1:
-                masked_username = username[0] + "***"
-                representation['email'] = masked_username + '@' + domain if domain else masked_username
-            else:
-                representation['email'] = "u***@" + domain if domain else "u***"
-        
-        return representation
-    
-    def validate_email(self, data):
-        """验证邮箱格式"""
-        if data and '@' not in data:
-            raise serializers.ValidationError("邮箱格式不正确")
-        return data
     
     def validate(self, attrs):
         """验证整体数据"""
