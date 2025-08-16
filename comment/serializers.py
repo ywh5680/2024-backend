@@ -4,7 +4,15 @@ from . import models
 
 class CommentSerializer(serializers.ModelSerializer):
     """评论序列化器"""
-    orid = serializers.SerializerMethodField()
+    orid = serializers.PrimaryKeyRelatedField(
+        allow_null=True, 
+        source='parent', 
+        queryset=models.Comment.objects.all(), 
+        required=False, 
+        error_messages={
+            'does_not_exist': '引用的父级评论不存在'
+        }
+    )
     
     class Meta:
         model = models.Comment
@@ -12,10 +20,6 @@ class CommentSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'datetime': {'read_only': True},
         }
-    
-    def get_orid(self, obj):
-        """获取父评论ID"""
-        return obj.parent.id if obj.parent else None
     
     def to_representation(self, instance):
         """处理数据表示，实现隐私保护"""
@@ -64,20 +68,3 @@ class CommentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("QQ号和邮箱至少需要提供一个")
             
         return attrs
-    
-    def create(self, validated_data):
-        """创建评论时处理orid字段"""
-        # 从请求数据中获取orid
-        orid = self.context['request'].data.get('orid')
-        
-        if orid:
-            try:
-                # 查找父评论
-                parent = models.Comment.objects.get(id=orid)
-                # 设置parent字段
-                validated_data['parent'] = parent
-            except models.Comment.DoesNotExist:
-                raise serializers.ValidationError({"orid": f"ID为{orid}的评论不存在"})
-        
-        # 创建评论
-        return super().create(validated_data)
