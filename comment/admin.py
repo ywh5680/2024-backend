@@ -53,12 +53,13 @@ def contact_info(obj: models.Comment):
 
 @admin.register(models.Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ['id', clamped_content, comment_time, parent, contact_info, 'has_children']
+    list_display = ['id', clamped_content, comment_time, parent, contact_info, 'has_children', 'status']
     list_display_links = ['id', clamped_content]
-    list_filter = ['datetime']
+    list_filter = ['datetime', 'status']
     search_fields = ['content', 'email', 'qq']
     date_hierarchy = 'datetime'
     readonly_fields = ['datetime']
+    list_editable = ['status']  # 允许直接在列表页修改状态
     
     fieldsets = (
         ('评论内容', {
@@ -69,6 +70,9 @@ class CommentAdmin(admin.ModelAdmin):
         }),
         ('联系方式', {
             'fields': ('qq', 'email')
+        }),
+        ('审核信息', {
+            'fields': ('status',)
         }),
         ('时间信息', {
             'fields': ('datetime',),
@@ -89,7 +93,7 @@ class CommentAdmin(admin.ModelAdmin):
         return format_html('<span style="color: gray;">无回复</span>')
     has_children.short_description = '回复数'
     
-    actions = ['delete_with_children']
+    actions = ['delete_with_children', 'approve_comments', 'reject_comments']
     
     def delete_with_children(self, request, queryset):
         for obj in queryset:
@@ -98,4 +102,14 @@ class CommentAdmin(admin.ModelAdmin):
         # 删除选中的评论
         queryset.delete()
     delete_with_children.short_description = '删除评论及其所有回复'
+
+    def approve_comments(self, request, queryset):
+        """批量通过评论"""
+        queryset.update(status=models.Comment.AuditStatus.APPROVED)
+    approve_comments.short_description = '批量通过选中评论'
+    
+    def reject_comments(self, request, queryset):
+        """批量拒绝评论"""
+        queryset.update(status=models.Comment.AuditStatus.REJECTED)
+    reject_comments.short_description = '批量拒绝选中评论'
 
