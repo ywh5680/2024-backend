@@ -20,10 +20,18 @@ class CommentPagination(PageNumberPagination):
 
 class CommentViewSet(ModelViewSet):
     """评论视图集"""
-    queryset = Comment.objects.all().order_by('-datetime')
     serializer_class = CommentSerializer
     pagination_class = CommentPagination
     throttle_classes = [CommentThrottle]
+    http_method_names = ['get', 'post']  # 只允许GET和POST方法
+    
+    def get_queryset(self):
+        """只返回已审核通过的评论"""
+        if self.request.user.is_staff:
+            # 管理员可以看到所有评论
+            return Comment.objects.all().order_by('-datetime')
+        # 普通用户只能看到已审核通过的评论
+        return Comment.objects.filter(status=Comment.AuditStatus.APPROVED).order_by('-datetime')
 
 
 

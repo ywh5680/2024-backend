@@ -78,9 +78,10 @@ class CommentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = models.Comment
-        fields = ['id', 'content', 'datetime', 'qq', 'email', 'orid']
+        fields = ['id', 'content', 'datetime', 'qq', 'email', 'orid', 'status']
         extra_kwargs = {
             'datetime': {'read_only': True},
+            'status': {'read_only': True},  # 状态字段只读，不允许用户修改
         }
     
     def validate(self, attrs):
