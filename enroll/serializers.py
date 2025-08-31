@@ -22,8 +22,71 @@ class EnrollSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EnrollModel
         exclude = ["status", "id"]
+        extra_kwargs = {
+            'name': {
+                'error_messages': {
+                    'blank': '姓名不能为空',
+                    'required': '姓名是必填项'
+                }
+            },
+            'uid': {
+                'error_messages': {
+                    'required': '学号是必填项',
+                    'invalid': '请输入有效的学号'
+                }
+            },
+            'major': {
+                'error_messages': {
+                    'blank': '年级专业不能为空',
+                    'required': '年级专业是必填项'
+                }
+            },
+            'phone': {
+                'error_messages': {
+                    'required': '手机号码是必填项',
+                    'invalid': '请输入有效的手机号码'
+                }
+            },
+            'email': {
+                'error_messages': {
+                    'required': '邮箱是必填项',
+                    'invalid': '请输入有效的邮箱地址'
+                }
+            },
+            'department': {
+                'error_messages': {
+                    'required': '意向部门是必填项',
+                    'invalid_choice': '请选择一个有效的部门'
+                }
+            },
+            'content': {
+                'error_messages': {
+                    'blank': '加入理由不能为空',
+                    'required': '加入理由是必填项'
+                }
+            },
+            'qq': {
+                'error_messages': {
+                    'required': 'QQ号是必填项',
+                    'invalid': '请输入有效的QQ号'
+                }
+            },
+            'comment': {
+                'error_messages': {
+                    'blank': '备注不能为空',
+                    'required': '备注是必填项'
+                }
+            }
+        }
 
-    code = serializers.IntegerField(help_text=models.CODE_HELP_TEXT, write_only=True)
+    code = serializers.IntegerField(
+        help_text=models.CODE_HELP_TEXT, 
+        write_only=True,
+        error_messages={
+            'required': '验证码是必填项',
+            'invalid': '请输入有效的验证码'
+        }
+    )
     department = serializers.ChoiceField(
         choices=models.EnrollModel.departments,
         error_messages={"invalid_choice": "请选择一个有效的部门"},

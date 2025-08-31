@@ -78,11 +78,19 @@ class CommentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = models.Comment
-        fields = ['id', 'content', 'datetime', 'qq', 'email', 'orid', 'status']
+        fields = ['id', 'content', 'datetime', 'qq', 'email', 'orid', 'parent_message', 'status']
         extra_kwargs = {
             'datetime': {'read_only': True},
             'status': {'read_only': True},  # 状态字段只读，不允许用户修改
+            'parent_message': {'read_only': True},  # 父评论内容只读
         }
+    
+    def create(self, validated_data):
+        """创建评论时，自动填充父评论内容"""
+        parent = validated_data.get('parent')
+        if parent:
+            validated_data['parent_message'] = parent.content
+        return super().create(validated_data)
     
     def validate(self, attrs):
         """验证整体数据"""

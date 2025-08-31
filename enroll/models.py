@@ -89,10 +89,10 @@ class EnrollModel(models.Model):
     # 0..9,223,372,036,854,775,807 (max of int64), bigger than 11 digits
     email = EmailFieldInst
     department = models.SmallIntegerField(choices=departments, verbose_name="意向部门")
-    content = models.CharField(null=True, max_length=200, verbose_name="为什么要加入爱特工作室")
+    content = models.CharField(max_length=200, verbose_name="为什么要加入爱特工作室")
     status = models.SmallIntegerField(choices=schedules, default=0, verbose_name="报名状态")
 
-    qq = models.PositiveBigIntegerField(unique=True, null=True, name="qq", verbose_name="QQ号")
+    qq = models.PositiveBigIntegerField(unique=True, verbose_name="QQ号")
     comment = models.CharField(max_length=64, blank=True, verbose_name="备注")
     # XXX: qq, content also need to be marked as not required in ./admin
 
