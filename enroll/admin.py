@@ -17,7 +17,7 @@ def uname2departmentIdx(name):
 
 @admin.register(models.EnrollModel)
 class EnrollAdmin(admin.ModelAdmin):
-    list_display = ("name", "uid", "phone", "email", "major", "qq", "status", "comment", "department_display")
+    list_display = ("name", "uid", "phone", "email", "major", "qq", "status", "department_display",  "content","comment",)
     list_editable = ("status", "comment")
     list_filter = ("department", "status")
     search_fields = ("name", "email", "uid", "phone", "qq")
